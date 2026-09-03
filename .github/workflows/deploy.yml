@@ -38,14 +38,41 @@ jobs:
             echo "Note: DB_USER secret not detected, skipping db_config.php generation."
           fi
 
+      - name: 🔑 Resolve FTP Credentials
+        id: ftp_creds
+        env:
+          FTP_RAW: ${{ secrets.FTP }}
+        run: |
+          SERVER="${{ secrets.FTP_SERVER || secrets.FTP_HOST || 'ftp.kasurcanvas.com' }}"
+          USER="${{ secrets.FTP_USERNAME || secrets.FTP_USER || '' }}"
+          PASS="${{ secrets.FTP_PASSWORD || secrets.FTP_PASS || '' }}"
+          PORT="${{ secrets.FTP_PORT || '21' }}"
+
+          if [ -n "$FTP_RAW" ]; then
+            PARSED_HOST=$(echo "$FTP_RAW" | grep -i 'Hostname:' | sed -e 's/.*Hostname:[[:space:]]*//I' | tr -d '\r')
+            PARSED_USER=$(echo "$FTP_RAW" | grep -i 'Username:' | sed -e 's/.*Username:[[:space:]]*//I' | tr -d '\r')
+            PARSED_PASS=$(echo "$FTP_RAW" | grep -i 'Password:' | sed -e 's/.*Password:[[:space:]]*//I' | tr -d '\r')
+            PARSED_PORT=$(echo "$FTP_RAW" | grep -i 'Port:' | sed -e 's/.*Port:[[:space:]]*//I' | tr -d '\r')
+
+            [ -n "$PARSED_HOST" ] && SERVER="$PARSED_HOST"
+            [ -n "$PARSED_USER" ] && USER="$PARSED_USER"
+            [ -n "$PARSED_PASS" ] && PASS="$PARSED_PASS"
+            [ -n "$PARSED_PORT" ] && PORT="$PARSED_PORT"
+          fi
+
+          echo "server=$SERVER" >> $GITHUB_OUTPUT
+          echo "username=$USER" >> $GITHUB_OUTPUT
+          echo "password=$PASS" >> $GITHUB_OUTPUT
+          echo "port=$PORT" >> $GITHUB_OUTPUT
+
       - name: 📂 Sync Files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER || secrets.FTP_HOST || secrets.SERVER || 'ftp.kasurcanvas.com' }}
-          username: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD || secrets.FTP_PASS || secrets.PASSWORD }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
-          port: ${{ secrets.FTP_PORT || 21 }}
+          server: ${{ steps.ftp_creds.outputs.server }}
+          username: ${{ steps.ftp_creds.outputs.username }}
+          password: ${{ steps.ftp_creds.outputs.password }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || 'kasurcanvas.com/public_html/' }}
+          port: ${{ steps.ftp_creds.outputs.port }}
           dangerous-clean-slate: false
           exclude: |
             **/.git*
@@ -55,3 +82,4 @@ jobs:
             AI Code.txt
             database.sql
             .env
+
