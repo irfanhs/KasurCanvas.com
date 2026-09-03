@@ -41,9 +41,9 @@ jobs:
       - name: 📂 Sync Files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ secrets.FTP_SERVER || secrets.FTP_HOST || secrets.SERVER || 'ftp.kasurcanvas.com' }}
+          username: ${{ secrets.FTP_USERNAME || secrets.FTP_USER || secrets.USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD || secrets.FTP_PASS || secrets.PASSWORD }}
           server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
           port: ${{ secrets.FTP_PORT || 21 }}
           dangerous-clean-slate: false

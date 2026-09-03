@@ -10,4 +10,4 @@ AI Code.txt
 .vscode/
 .idea/
 Thumbs.db
-.DS_Store
+*.zip
