@@ -7,6 +7,9 @@ $pageTitle = 'Kasur Canvas | Heavy-Duty Cotton Canvas & Industrial Fabric Manufa
 $metaDesc = 'Kasur Canvas is Pakistan’s leading manufacturer and exporter of heavy-duty cotton duck canvas, waterproof waxed fabric, conveyor belt cloth, and specialty industrial textiles. Based in Kasur City, a proud venture of Sabri Textiles.';
 $activeNav = 'home';
 
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
 require_once __DIR__ . '/includes/header.php';
 
 // Fetch featured products from database
