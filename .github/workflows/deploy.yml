@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger directly from GitHub UI
+  workflow_dispatch: # Allows manual trigger directly from GitHub Actions tab
 
 jobs:
   web-deploy:
@@ -15,6 +15,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2 # Enables delta/diff upload for fast sync
+
+      - name: ⚙️ Generate Production Database Config from Secrets
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME || secrets.DB_DATABASE || secrets.KasurCanvasDatabase || 'KasurCanvasDatabase' }}
+          DB_USER: ${{ secrets.DB_USER || secrets.DB_USERNAME }}
+          DB_PASS: ${{ secrets.DB_PASS || secrets.DB_PASSWORD }}
+        run: |
+          if [ -n "$DB_USER" ]; then
+            echo "Generating production config/db_config.php..."
+            cat << EOF > config/db_config.php
+          <?php
+          define('DB_HOST', '${DB_HOST:-localhost}');
+          define('DB_PORT', '${DB_PORT:-3306}');
+          define('DB_NAME', '${DB_NAME:-KasurCanvasDatabase}');
+          define('DB_USER', '$DB_USER');
+          define('DB_PASS', '$DB_PASS');
+          EOF
+          else
+            echo "Note: DB_USER secret not detected, skipping db_config.php generation."
+          fi
 
       - name: 📂 Sync Files via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -32,5 +54,4 @@ jobs:
             README.md
             AI Code.txt
             database.sql
-            config/db_config.php
             .env
