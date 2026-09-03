@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 85" width="100%" height="100%" fill="none">
+  <!-- Brand Icon: Geometric Loom / Canvas Thread Shield -->
+  <g transform="translate(10, 10)">
+    <!-- Outer Shield with Rounded Corners -->
+    <rect x="0" y="0" width="65" height="65" rx="14" fill="url(#brandGrad)" />
+    
+    <!-- Weave Grid Lines representing Canvas warp and weft -->
+    <path d="M16 22 H49" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.95"/>
+    <path d="M16 32.5 H49" stroke="#fcd34d" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M16 43 H49" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.95"/>
+    
+    <!-- Vertical warp weave threads interlaced -->
+    <path d="M24 14 V51" stroke="#fcd34d" stroke-width="3" stroke-linecap="round"/>
+    <path d="M32.5 14 V51" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" opacity="0.95"/>
+    <path d="M41 14 V51" stroke="#fcd34d" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Subtle Accent Sparkle -->
+    <circle cx="51" cy="14" r="4.5" fill="#f59e0b" />
+  </g>
+
+  <!-- Typography: Kasur Canvas -->
+  <text x="88" y="42" font-family="'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif" font-size="28" font-weight="800" fill="#0f172a" letter-spacing="-0.5">
+    KASUR<tspan fill="#d97706">CANVAS</tspan>
+  </text>
+  
+  <!-- Subtitle: Parent Company Endorsement Badge -->
+  <g transform="translate(89, 52)">
+    <rect x="0" y="2" width="245" height="18" rx="4" fill="#f1f5f9" />
+    <circle cx="8" cy="11" r="3.5" fill="#d97706" />
+    <text x="17" y="15" font-family="'Inter', system-ui, sans-serif" font-size="10.5" font-weight="700" fill="#475569" letter-spacing="0.5">
+      NEW PROJECT OF SABRI TEXTILES
+    </text>
+  </g>
+
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="brandGrad" x1="0" y1="0" x2="65" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="60%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+  </defs>
+</svg>
