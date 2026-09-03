@@ -104,7 +104,7 @@
         <div class="footer-col">
           <h4>Explore</h4>
           <ul class="footer-links">
-            <li><a href="<?= base_url('index.php') ?>">Home Page</a></li>
+            <li><a href="<?= base_url('home.php') ?>">Home Page</a></li>
             <li><a href="<?= base_url('products.php') ?>">Canvas Catalog</a></li>
             <li><a href="<?= base_url('about.php') ?>">About Our Kasur Mill</a></li>
             <li><a href="<?= base_url('contact.php') ?>">Contact & Location</a></li>

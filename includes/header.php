@@ -77,14 +77,14 @@ try {
   <header class="site-header">
     <div class="container">
       <nav class="navbar">
-        <a href="<?= base_url('index.php') ?>" class="brand-logo" title="Kasur Canvas - KasurCanvas.com">
+        <a href="<?= base_url('home.php') ?>" class="brand-logo" title="Kasur Canvas - KasurCanvas.com">
           <img src="<?= base_url('assets/images/logo.svg') ?>" alt="Kasur Canvas Logo" width="240" height="52">
         </a>
 
         <!-- Desktop Navigation -->
         <ul class="nav-menu">
           <li>
-            <a href="<?= base_url('index.php') ?>" class="nav-link <?= $activeNav === 'home' ? 'active' : '' ?>">Home</a>
+            <a href="<?= base_url('home.php') ?>" class="nav-link <?= $activeNav === 'home' ? 'active' : '' ?>">Home</a>
           </li>
           <li class="nav-dropdown">
             <a href="<?= base_url('products.php') ?>" class="nav-link <?= $activeNav === 'products' ? 'active' : '' ?>">

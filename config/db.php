@@ -84,6 +84,7 @@ function get_db() {
 
         return $pdo;
     } catch (PDOException $e) {
+        http_response_code(500);
         die("<div style='font-family:sans-serif;padding:30px;background:#fee2e2;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;'>
             <h3 style='margin-top:0'>Database Initialization Error</h3>
             <p>Could not connect to MySQL server. Please verify database credentials in config/db_config.php.</p>
