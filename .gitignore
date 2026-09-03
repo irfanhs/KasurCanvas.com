@@ -1,0 +1,13 @@
+# Production credentials override
+config/db_config.php
+.env
+
+# Development scratch files
+AI Code.txt
+*.log
+
+# Editor & OS artifacts
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

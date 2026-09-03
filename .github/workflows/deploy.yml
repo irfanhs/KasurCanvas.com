@@ -1,0 +1,36 @@
+name: Deploy KasurCanvas to Web via FTP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual trigger directly from GitHub UI
+
+jobs:
+  web-deploy:
+    name: Deploy to Live Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Enables delta/diff upload for fast sync
+
+      - name: 📂 Sync Files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || 'public_html/' }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            README.md
+            AI Code.txt
+            database.sql
+            config/db_config.php
+            .env

@@ -4,12 +4,17 @@
  * A modern venture of SabriTextiles.com
  */
 
-// Global Configuration
-define('DB_HOST', '127.0.0.1');
-define('DB_PORT', '3306');
-define('DB_NAME', 'kasurcanvas_db');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+// Load production configuration if present (ignored by git for security)
+if (file_exists(__DIR__ . '/db_config.php')) {
+    require_once __DIR__ . '/db_config.php';
+}
+
+// Global Configuration (Default Local Fallback)
+defined('DB_HOST') || define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
+defined('DB_PORT') || define('DB_PORT', getenv('DB_PORT') ?: '3306');
+defined('DB_NAME') || define('DB_NAME', getenv('DB_NAME') ?: 'kasurcanvas_db');
+defined('DB_USER') || define('DB_USER', getenv('DB_USER') ?: 'root');
+defined('DB_PASS') || define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 
 // Site Metadata
 define('SITE_NAME', 'Kasur Canvas');
@@ -52,31 +57,36 @@ function get_db() {
     }
 
     try {
-        // Step 1: Connect to MySQL server without database first
-        $dsnInitial = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
-        $pdoInit = new PDO($dsnInitial, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
-
-        // Step 2: Ensure database exists
-        $pdoInit->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-
-        // Step 3: Connect to the database
         $dsnDb = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]);
+        
+        // Step 1: Attempt direct connection to target database first (Standard production & cPanel approach)
+        try {
+            $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+        } catch (PDOException $eDirect) {
+            // Step 2: Fallback for local development if database does not exist yet
+            $dsnInitial = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
+            $pdoInit = new PDO($dsnInitial, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+            $pdoInit->exec("CREATE DATABASE IF NOT EXISTS `" . DB_NAME . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+            $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+        }
 
-        // Step 4: Ensure tables and initial dataset exist
+        // Step 3: Ensure tables and initial dataset exist
         init_schema_and_seed($pdo);
 
         return $pdo;
     } catch (PDOException $e) {
         die("<div style='font-family:sans-serif;padding:30px;background:#fee2e2;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;'>
             <h3 style='margin-top:0'>Database Initialization Error</h3>
-            <p>Could not connect to MySQL server. Please make sure MySQL is running in XAMPP.</p>
+            <p>Could not connect to MySQL server. Please verify database credentials in config/db_config.php.</p>
             <p><small>" . htmlspecialchars($e->getMessage()) . "</small></p>
         </div>");
     }
