@@ -43,7 +43,7 @@ jobs:
         env:
           FTP_RAW: ${{ secrets.FTP }}
         run: |
-          SERVER="${{ secrets.FTP_SERVER || secrets.FTP_HOST || 'ftp.kasurcanvas.com' }}"
+          SERVER="${{ secrets.FTP_SERVER || secrets.FTP_HOST || '64.20.37.138' }}"
           USER="${{ secrets.FTP_USERNAME || secrets.FTP_USER || '' }}"
           PASS="${{ secrets.FTP_PASSWORD || secrets.FTP_PASS || '' }}"
           PORT="${{ secrets.FTP_PORT || '21' }}"
@@ -71,7 +71,7 @@ jobs:
           server: ${{ steps.ftp_creds.outputs.server }}
           username: ${{ steps.ftp_creds.outputs.username }}
           password: ${{ steps.ftp_creds.outputs.password }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || 'kasurcanvas.com/public_html/' }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || '/' }}
           port: ${{ steps.ftp_creds.outputs.port }}
           dangerous-clean-slate: false
           exclude: |

@@ -56,17 +56,18 @@ function get_db() {
         return $pdo;
     }
 
+    $mysqlError = null;
+
+    // Step 1: Attempt MySQL connection
     try {
         $dsnDb = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        
-        // Step 1: Attempt direct connection to target database first (Standard production & cPanel approach)
         try {
             $pdo = new PDO($dsnDb, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]);
         } catch (PDOException $eDirect) {
-            // Step 2: Fallback for local development if database does not exist yet
+            // Fallback for local development if database does not exist yet
             $dsnInitial = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";charset=utf8mb4";
             $pdoInit = new PDO($dsnInitial, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -79,81 +80,164 @@ function get_db() {
             ]);
         }
 
-        // Step 3: Ensure tables and initial dataset exist
         init_schema_and_seed($pdo);
-
         return $pdo;
     } catch (PDOException $e) {
-        http_response_code(500);
-        die("<div style='font-family:sans-serif;padding:30px;background:#fee2e2;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;'>
-            <h3 style='margin-top:0'>Database Initialization Error</h3>
-            <p>Could not connect to MySQL server. Please verify database credentials in config/db_config.php.</p>
-            <p><small>" . htmlspecialchars($e->getMessage()) . "</small></p>
-        </div>");
+        $mysqlError = $e->getMessage();
     }
+
+    // Step 2: Seamless fallback to SQLite if MySQL is not yet configured or inaccessible
+    if (in_array('sqlite', PDO::getAvailableDrivers())) {
+        try {
+            $appDataDir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'App_Data';
+            if (is_dir($appDataDir) && is_writable($appDataDir)) {
+                $sqliteFile = $appDataDir . DIRECTORY_SEPARATOR . 'kasurcanvas.sqlite';
+            } else {
+                $sqliteFile = __DIR__ . DIRECTORY_SEPARATOR . 'kasurcanvas.sqlite';
+            }
+            $pdo = new PDO("sqlite:" . $sqliteFile, null, null, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+            $pdo->exec("PRAGMA foreign_keys = ON;");
+            init_schema_and_seed($pdo);
+            return $pdo;
+        } catch (Exception $eSqlite) {
+            // Fall through to error handler
+        }
+    }
+
+    http_response_code(500);
+    die("<div style='font-family:sans-serif;padding:30px;background:#fee2e2;color:#991b1b;border-radius:8px;max-width:600px;margin:50px auto;'>
+        <h3 style='margin-top:0'>Database Initialization Error</h3>
+        <p>Could not connect to MySQL server. Please verify database credentials in config/db_config.php.</p>
+        <p><small>" . htmlspecialchars($mysqlError ?? 'Unknown error') . "</small></p>
+    </div>");
 }
 
 /**
  * Creates schema and seeds all products and multi-images
  */
 function init_schema_and_seed(PDO $pdo) {
-    // 1. Categories Table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `categories` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `slug` VARCHAR(80) NOT NULL UNIQUE,
-        `name` VARCHAR(120) NOT NULL,
-        `description` TEXT,
-        `display_order` INT DEFAULT 0
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-    // 2. Products Table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `products` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `category_id` INT DEFAULT 1,
-        `slug` VARCHAR(120) NOT NULL UNIQUE,
-        `title` VARCHAR(200) NOT NULL,
-        `subtitle` VARCHAR(255) DEFAULT '',
-        `badge_text` VARCHAR(60) DEFAULT '',
-        `short_desc` TEXT NOT NULL,
-        `full_desc` LONGTEXT NOT NULL,
-        `weight_spec` VARCHAR(150) DEFAULT '',
-        `width_spec` VARCHAR(150) DEFAULT '',
-        `yarn_spec` VARCHAR(150) DEFAULT '',
-        `weave_spec` VARCHAR(150) DEFAULT '',
-        `finish_spec` VARCHAR(150) DEFAULT '',
-        `tensile_spec` VARCHAR(150) DEFAULT '',
-        `applications` TEXT,
-        `features` TEXT,
-        `is_featured` TINYINT(1) DEFAULT 0,
-        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    if ($driver === 'sqlite') {
+        // 1. Categories Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `categories` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `slug` VARCHAR(80) NOT NULL UNIQUE,
+            `name` VARCHAR(120) NOT NULL,
+            `description` TEXT,
+            `display_order` INTEGER DEFAULT 0
+        );");
 
-    // 3. Product Images Table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `product_images` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `product_id` INT NOT NULL,
-        `image_url` VARCHAR(255) NOT NULL,
-        `caption` VARCHAR(200) DEFAULT '',
-        `is_primary` TINYINT(1) DEFAULT 0,
-        `display_order` INT DEFAULT 0,
-        FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        // 2. Products Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `products` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `category_id` INTEGER DEFAULT 1,
+            `slug` VARCHAR(120) NOT NULL UNIQUE,
+            `title` VARCHAR(200) NOT NULL,
+            `subtitle` VARCHAR(255) DEFAULT '',
+            `badge_text` VARCHAR(60) DEFAULT '',
+            `short_desc` TEXT NOT NULL,
+            `full_desc` TEXT NOT NULL,
+            `weight_spec` VARCHAR(150) DEFAULT '',
+            `width_spec` VARCHAR(150) DEFAULT '',
+            `yarn_spec` VARCHAR(150) DEFAULT '',
+            `weave_spec` VARCHAR(150) DEFAULT '',
+            `finish_spec` VARCHAR(150) DEFAULT '',
+            `tensile_spec` VARCHAR(150) DEFAULT '',
+            `applications` TEXT,
+            `features` TEXT,
+            `is_featured` INTEGER DEFAULT 0,
+            `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+        );");
 
-    // 4. Inquiries Table (for RFQs and Contact Form)
-    $pdo->exec("CREATE TABLE IF NOT EXISTS `inquiries` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `product_name` VARCHAR(150) DEFAULT 'General Inquiry',
-        `customer_name` VARCHAR(120) NOT NULL,
-        `company_name` VARCHAR(150) DEFAULT '',
-        `email` VARCHAR(150) NOT NULL,
-        `phone` VARCHAR(80) DEFAULT '',
-        `country` VARCHAR(100) DEFAULT 'Pakistan',
-        `quantity` VARCHAR(100) DEFAULT '',
-        `message` TEXT NOT NULL,
-        `status` ENUM('new', 'in_review', 'quoted', 'completed') DEFAULT 'new',
-        `ip_address` VARCHAR(50) DEFAULT '',
-        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        // 3. Product Images Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `product_images` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `product_id` INTEGER NOT NULL,
+            `image_url` VARCHAR(255) NOT NULL,
+            `caption` VARCHAR(200) DEFAULT '',
+            `is_primary` INTEGER DEFAULT 0,
+            `display_order` INTEGER DEFAULT 0,
+            FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE
+        );");
+
+        // 4. Inquiries Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `inquiries` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+            `product_name` VARCHAR(150) DEFAULT 'General Inquiry',
+            `customer_name` VARCHAR(120) NOT NULL,
+            `company_name` VARCHAR(150) DEFAULT '',
+            `email` VARCHAR(150) NOT NULL,
+            `phone` VARCHAR(80) DEFAULT '',
+            `country` VARCHAR(100) DEFAULT 'Pakistan',
+            `quantity` VARCHAR(100) DEFAULT '',
+            `message` TEXT NOT NULL,
+            `status` VARCHAR(30) DEFAULT 'new',
+            `ip_address` VARCHAR(50) DEFAULT '',
+            `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+        );");
+    } else {
+        // 1. Categories Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `categories` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `slug` VARCHAR(80) NOT NULL UNIQUE,
+            `name` VARCHAR(120) NOT NULL,
+            `description` TEXT,
+            `display_order` INT DEFAULT 0
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        // 2. Products Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `products` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `category_id` INT DEFAULT 1,
+            `slug` VARCHAR(120) NOT NULL UNIQUE,
+            `title` VARCHAR(200) NOT NULL,
+            `subtitle` VARCHAR(255) DEFAULT '',
+            `badge_text` VARCHAR(60) DEFAULT '',
+            `short_desc` TEXT NOT NULL,
+            `full_desc` LONGTEXT NOT NULL,
+            `weight_spec` VARCHAR(150) DEFAULT '',
+            `width_spec` VARCHAR(150) DEFAULT '',
+            `yarn_spec` VARCHAR(150) DEFAULT '',
+            `weave_spec` VARCHAR(150) DEFAULT '',
+            `finish_spec` VARCHAR(150) DEFAULT '',
+            `tensile_spec` VARCHAR(150) DEFAULT '',
+            `applications` TEXT,
+            `features` TEXT,
+            `is_featured` TINYINT(1) DEFAULT 0,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        // 3. Product Images Table
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `product_images` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `product_id` INT NOT NULL,
+            `image_url` VARCHAR(255) NOT NULL,
+            `caption` VARCHAR(200) DEFAULT '',
+            `is_primary` TINYINT(1) DEFAULT 0,
+            `display_order` INT DEFAULT 0,
+            FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        // 4. Inquiries Table (for RFQs and Contact Form)
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `inquiries` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `product_name` VARCHAR(150) DEFAULT 'General Inquiry',
+            `customer_name` VARCHAR(120) NOT NULL,
+            `company_name` VARCHAR(150) DEFAULT '',
+            `email` VARCHAR(150) NOT NULL,
+            `phone` VARCHAR(80) DEFAULT '',
+            `country` VARCHAR(100) DEFAULT 'Pakistan',
+            `quantity` VARCHAR(100) DEFAULT '',
+            `message` TEXT NOT NULL,
+            `status` ENUM('new', 'in_review', 'quoted', 'completed') DEFAULT 'new',
+            `ip_address` VARCHAR(50) DEFAULT '',
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
 
     // Check if products exist; if not, seed data
     $check = $pdo->query("SELECT COUNT(*) FROM `products`")->fetchColumn();
